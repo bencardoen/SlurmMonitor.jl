@@ -1,6 +1,8 @@
 using ArgParse
-
-
+using Logging
+using Dates
+using LoggingExtras
+using SlurmMonitor
 
 
 function parse_commandline()
@@ -12,7 +14,9 @@ function parse_commandline()
             arg_type = Int
             default = 60
         "--iterations", "-r"
-            help = ""
+            help = "Number of iterations to keep running, set to -1 for infinite"
+	    arg_type = Int
+	    default = 60
     end
     return parse_args(s)
 end
