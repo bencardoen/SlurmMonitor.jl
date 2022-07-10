@@ -21,11 +21,12 @@ using DataFrames
 using Plots
 using GR
 using Dates
+using Slack
 using CSV
 using ProgressMeter
 
 
-export monitor, plotstats
+export monitor, plotstats, posttoslack
 
 STATES = ["ALLOC", "ALLOCATED", "CLOUD", "COMP", "COMPLETING", "DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "FUTURE", "FUTR", "IDLE", "MAINT", "MIX", "MIXED", "NO_RESPOND","NPC", "PERFCTRS", "PLANNED", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED", "RESV", "RESERVED", "UNK", "UNKNOWN"]
 BADSTATE = ["DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "MAINT", "NO_RESPOND", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED"]
@@ -60,7 +61,7 @@ function quantifystates(df)
     for i in indices
         states = df[df.INDEX .== i,:].STATE
         idle, busy, bad = enumeratestates(states)
-        @info idle, busy, bad
+        # @info idle, busy, bad
         total = idle+busy+bad
         push!(bzp, busy/total)
         push!(idp, idle/total)
