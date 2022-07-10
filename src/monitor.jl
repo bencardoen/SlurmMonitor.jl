@@ -33,3 +33,6 @@ function run()
     end
     monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath="/dev/shm")
 end
+
+
+run()
