@@ -294,7 +294,7 @@ function queuelength()
                 run = run+1
             end
         end
-        @info "Current SLURM : $(length(states)) jobs with $(run) running"
+        #@info "Current SLURM : $(length(states)) jobs with $(run) running"
     end
     return states, run
 end
@@ -344,7 +344,7 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
 end
 
 function triggernode(recorded, index, interval, trigger, nodes)
-    @info "Testing health of cluster nodes"
+    #@info "Testing health of cluster nodes"
     if index == 1
         @debug "First state, skipping trigger"
         return
