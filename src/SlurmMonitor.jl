@@ -18,16 +18,72 @@ module SlurmMonitor
 using Logging
 using ArgParse
 using DataFrames
+using Plots
+using GR
 using Dates
 using CSV
 using ProgressMeter
 
 
-export monitor
+export monitor, plotstats
 
 STATES = ["ALLOC", "ALLOCATED", "CLOUD", "COMP", "COMPLETING", "DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "FUTURE", "FUTR", "IDLE", "MAINT", "MIX", "MIXED", "NO_RESPOND","NPC", "PERFCTRS", "PLANNED", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED", "RESV", "RESERVED", "UNK", "UNKNOWN"]
 BADSTATE = ["DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "MAINT", "NO_RESPOND", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED"]
 GOODSTATE = ["ALLOC", "ALLOCATED", "IDLE", "MIXED"]
+
+
+function plotstats(df)
+    cdf=combine(groupby(df, [:INDEX, :TIME]), [:FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
+    start=minimum(cdf.TIME)
+    stop=maximum(cdf.TIME)
+    F=unique(cdf.TOTALGPU_sum)[1]
+    C=unique(cdf.TOTALCPU_sum)[1]
+    bzp, idp, bap, total = quantifystates(df)
+    R=unique(cdf.TOTALRAM_sum)[1]
+    px = Plots.plot(cdf.INDEX, cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100, ylim=[0,100], label="Free CPU (%) Total CPU=$(Int(C)) cores")
+    Plots.plot!(cdf.INDEX, cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100, ylim=[0,100], label="Free GPU (%) Total GPU = $F GPUS")
+    # Plots.plot!(cdf.INDEX, cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100, ylim=[0,100], label="Idle (%) Total Nodes = $total nodes")
+    Plots.plot!(cdf.INDEX, idp .*100, ylim=[0,100], label="Idle (%) Total Nodes = $total nodes")
+    Plots.plot!(cdf.INDEX, bap .*100, ylim=[0,100], label="BAD-DOWN (%)")
+    Plots.plot!(cdf.INDEX, cdf.FREERAM_sum ./ cdf.TOTALRAM_sum *100, ylim=[0,120], label="Free RAM (%) Total RAM = $R GB")
+    px=Plots.plot(px, dpi=90, size=(900, 800), ylabel="Available resources Solar (%)", xlabel="Time ($start --> $stop)", ylim=[0, 120])
+    Plots.savefig("slurm.png")
+    return px
+end
+
+function quantifystates(df)
+    indices=sort(unique(df.INDEX))
+    bzp = []
+    idp = []
+    bap = []
+    total = 0
+    for i in indices
+        states = df[df.INDEX .== i,:].STATE
+        idle, busy, bad = enumeratestates(states)
+        @info idle, busy, bad
+        total = idle+busy+bad
+        push!(bzp, busy/total)
+        push!(idp, idle/total)
+        push!(bap, bad/total)
+    end
+    return bzp, idp, bap, total
+end
+
+function enumeratestates(states)
+    idle, busy, bad = 0, 0, 0
+    for state in states
+        if state ∈ ["IDLE"]
+            idle = idle + 1
+        end
+        if state ∈ ["ALLOC", "ALLOCATED", "IDLE", "MIXED"]
+            busy = busy + 1
+        end
+        if state ∈ BADSTATE
+            bad = bad + 1
+        end
+    end
+    return idle, busy, bad
+end
 
 function getnodes()
     r=split(readlines(`sinfo -o"%N"`)[2], ',')
