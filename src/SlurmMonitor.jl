@@ -133,6 +133,12 @@ function diskusage(node)
     return decoded
 end
 
+
+function posttoslack(message; endpoint="/services/TD3K742US/B03NHNKMBEK/oepOlQgTwPokLWQxrWeSW4jO")
+    response = sendtoslack(message, endpoint)
+    @info "Sent $message to $endpoint with response $response"
+end
+
 function decode_nvidiasmi(nvidiasmi, nvidiasmil)
     devicecount = length(nvidiasmil)
     FT = filter(x -> occursin("%", x), nvidiasmi)
@@ -264,10 +270,6 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
             totalmemory, freememory, ncpu, freecpu,
             length(states), running, kernel])
         end
-        # @info recorded
-        ## Todo
-        ## For node in nodes
-        ## Check current state with last state and if triggered -> notify
         triggernode(recorded, index, interval, x->x, nodes)
         if r != -1
             r = r -1
@@ -276,8 +278,11 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
                 break
             end
         end
+        # posttoslack("")
         index = index + 1
+        CSV.write("observed_state.csv", recorded)
     end
+    # posttoslack("")
     CSV.write("observed_state.csv", recorded)
 end
 
