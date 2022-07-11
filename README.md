@@ -28,3 +28,10 @@ On specified conditions (IDLE->DOWN) will send messages to a linked Slackbot
 - Requires a link to a Slackbot
 - Requires SLURM + command line tools (sinfo, scontrol) to be installed
 
+
+
+## Warning
+If you run this on a cluster, make sure you're authorized to do so. Calling `scontrol` and `sinfo` are RPC calls that cause a non-trivial load on the scheduler, if the cluster has 1000s of nodes, and you set the interval to 1s, that means 2000 RPC calls/1.
+Note that it takes several seconds, if not more, for a node to change state anyway.
+Do not do this unless you're a cluster admin.
+Sane intervals are ~ 120 or more seconds.
