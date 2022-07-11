@@ -15,8 +15,12 @@ function parse_commandline()
             default = 60
         "--iterations", "-r"
             help = "Number of iterations to keep running, set to -1 for infinite"
-	    arg_type = Int
-	    default = 60
+		    arg_type = Int
+		    default = 60
+		"--outpath", "-o"
+            help = "path to save recorded stats"
+	    	arg_type = String
+	    	default = "."
     end
     return parse_args(s)
 end
@@ -35,7 +39,7 @@ function run()
     for (arg,val) in parsed_args
         @info "  $arg  =>  $val"
     end
-    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath="/dev/shm")
+    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"])
 end
 
 

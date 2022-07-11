@@ -121,8 +121,13 @@ function getnodestatus(nodename)
     # @info "Total memory $totalmemory free $freememory"
     gpualloc=alloctres(res)
     totalgpu=tryparse(Int, split(filter(y->occursin("Gres=", y), res)[1],':')[end])
-    k=split(filter(y->occursin("OS=Linux", y), res)[1], ' ')
-    k2=filter(z->occursin("-generic", z),k)[1]
+    k2 = "unknown"
+    try
+        k=split(filter(y->occursin("OS=Linux", y), res)[1], ' ')
+        k2=filter(z->occursin("-generic", z),k)[1]
+    catch e
+        @error "Exception $e occurred during parsing of Kernel version for node $nodename $res"
+    end
     # @info "GPU allocated $gpualloc total $totalgpu"
     return state, ncpu, freecpu, totalmemory, freememory, totalgpu, totalgpu-gpualloc, k2
 end
