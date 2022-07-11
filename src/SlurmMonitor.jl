@@ -113,6 +113,10 @@ end
 function getnodestatus(nodename)
     res=readlines(`scontrol show node $(nodename)`)
     state=getfield(res)
+    if state ∈ BADSTATE
+        @warn "$nodename is not in valid state $state"
+        return state, 0, 0, 0, 0, 0, 0, "UNKNOWN"
+    end
     ncpu=tryparse(Int64, getfield(res, "CPUTot="))
     freecpu=ncpu-tryparse(Int64, getfield(res, "CPUAlloc="))
     # @info "Total $ncpu Allocated $freecpu"
