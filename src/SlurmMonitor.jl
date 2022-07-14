@@ -18,15 +18,17 @@ module SlurmMonitor
 using Logging
 using ArgParse
 using DataFrames
+using Printf
 using Plots
 using GR
 using Dates
+using Statistics
 using Slack
 using CSV
 using ProgressMeter
 
 
-export monitor, plotstats, posttoslack
+export monitor, plotstats, posttoslack, STATES, BADSTATE, GOODSTATE, summarizestate, sectime
 
 STATES = ["ALLOC", "ALLOCATED", "CLOUD", "COMP", "COMPLETING", "DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "FUTURE", "FUTR", "IDLE", "MAINT", "MIX", "MIXED", "NO_RESPOND","NPC", "PERFCTRS", "PLANNED", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED", "RESV", "RESERVED", "UNK", "UNKNOWN"]
 BADSTATE = ["DOWN", "DOWN*", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "MAINT", "NO_RESPOND", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED"]
@@ -50,6 +52,27 @@ function plotstats(df)
     px=Plots.plot(px, dpi=90, size=(900, 800), ylabel="Available resources Solar (%)", xlabel="Time ($start --> $stop)", ylim=[0, 120])
     Plots.savefig("slurm.png")
     return px
+end
+
+
+function summarizestate(df)
+    cdf=combine(groupby(df, [:INDEX, :TIME]), [:FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
+    start=minimum(cdf.TIME)
+    stop=maximum(cdf.TIME)
+    F=unique(cdf.TOTALGPU_sum)[1]
+    C=unique(cdf.TOTALCPU_sum)[1]
+    bzp, idp, bap, total = quantifystates(df)
+    R=unique(cdf.TOTALRAM_sum)[1]
+    posttoslack("Over last $(sectime(df)) hours, utilization of cluster:")
+    posttoslack("Total Nodes = $(total[end]) Mean Utilization $(@sprintf("%.2f", bzp[end] *100))%")
+    posttoslack("Total CPUs = $(Int.(C)) Mean Utilization $(@sprintf("%.2f", 100-mean(cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100)))%")
+    posttoslack("Total GPUs = $(Int.(F)) Mean Utilization $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
+end
+
+
+function sectime(df)
+    s = (maximum(df.INDEX) - minimum(df.INDEX))*unique(df.INTERVAL)[1]
+    round(s / 3600)
 end
 
 function quantifystates(df)
@@ -322,13 +345,13 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
                 TOTALRAM=Float64[], FREERAM=Float64[], TOTALCPU=Float64[],
                 FREECPU=Float64[], QUEUE=Int64[], RUNNING=Int64[], KERNEL=String[])
     @info "Starting loop, polling every $interval seconds"
-    time = Dates.format(now(Dates.UTC), "dd:mm:yyyy HH:MM")
+    time = Dates.format(now(Dates.UTC), "dd-mm-yyyy HH:MM")
     @info "Start at $time"
     while true
         # @info "Sleeping for $interval seconds"
         sleep(interval)
         states, running =queuelength()
-        time = Dates.format(now(Dates.UTC), "dd:mm:yyyy HH:MM")
+        time = Dates.format(now(Dates.UTC), "dd-mm-yyyy HH:MM")
         nodes = getnodes()
         @showprogress for node in nodes
             state, ncpu, freecpu, totalmemory, freememory, totalgpu, freegpu, kernel=getnodestatus(node)
@@ -336,11 +359,12 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
             totalmemory, freememory, ncpu, freecpu,
             length(states), running, kernel])
         end
-        triggernode(recorded, index, interval, x->x, nodes)
+        triggernode(recorded)
         if r != -1
             r = r -1
             if r < 1
                 @info "halting"
+                summarizestate(recorded)
                 break
             end
         end
@@ -352,14 +376,16 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
     CSV.write("observed_state.csv", recorded)
 end
 
-function triggernode(recorded, index, interval, trigger, nodes)
+function triggernode(recorded)
     #@info "Testing health of cluster nodes"
-    if index == 1
-        @debug "First state, skipping trigger"
+    lastindex=maximum(recorded[!, :INDEX])
+    if lastindex == 1
+        @info "Only 1 recording, no sense in checking"
         return
     end
-    laststate = recorded[recorded.INDEX .== index-1, :]
-    curstate = recorded[recorded.INDEX .== index, :]
+    laststate = recorded[recorded.INDEX .== lastindex-1, :]
+    curstate = recorded[recorded.INDEX .== lastindex, :]
+    nodes = laststate.NODE
     for node in nodes
         lastnodestate = laststate[laststate.NODE .== node, :].STATE[1]
         curnodestate = curstate[curstate.NODE .== node, :].STATE[1]
@@ -368,9 +394,19 @@ function triggernode(recorded, index, interval, trigger, nodes)
             if lastnodestate ∈ GOODSTATE
                 @error "Node switched from $lastnodestate to $curnodestate"
                 # trigger(node, lastnodestate, curnodestate, curstate)
+                posttoslack("-!- Warning-!- Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])")
+            end
+        end
+        if curnodestate ∈ GOODSTATE
+            # @warn "$node has good state $curnodestate"
+            if lastnodestate ∈ BADSTATE
+                @info "Node switched from $lastnodestate to $curnodestate"
+                # trigger(node, lastnodestate, curnodestate, curstate)
+                posttoslack("✓ Resolved ✓ Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])")
             end
         end
     end
+    summarizestate(recorded)
     return
 end
 
