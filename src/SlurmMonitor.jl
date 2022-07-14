@@ -386,6 +386,7 @@ function triggernode(recorded)
     laststate = recorded[recorded.INDEX .== lastindex-1, :]
     curstate = recorded[recorded.INDEX .== lastindex, :]
     nodes = laststate.NODE
+    trig = false
     for node in nodes
         lastnodestate = laststate[laststate.NODE .== node, :].STATE[1]
         curnodestate = curstate[curstate.NODE .== node, :].STATE[1]
@@ -395,6 +396,7 @@ function triggernode(recorded)
                 @error "Node switched from $lastnodestate to $curnodestate"
                 # trigger(node, lastnodestate, curnodestate, curstate)
                 posttoslack("-!- Warning-!- Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])")
+                trig = true
             end
         end
         if curnodestate ∈ GOODSTATE
@@ -403,10 +405,13 @@ function triggernode(recorded)
                 @info "Node switched from $lastnodestate to $curnodestate"
                 # trigger(node, lastnodestate, curnodestate, curstate)
                 posttoslack("✓ Resolved ✓ Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])")
+                trig = true
             end
         end
     end
-    summarizestate(recorded)
+    if trig
+        summarizestate(recorded)
+    end
     return
 end
 
