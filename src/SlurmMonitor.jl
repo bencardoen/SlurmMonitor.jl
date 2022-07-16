@@ -56,17 +56,25 @@ end
 
 
 function summarizestate(df)
-    cdf=combine(groupby(df, [:INDEX, :TIME]), [:FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
+    cdf=combine(groupby(df, [:INDEX, :TIME]), [:RUNNING => maximum, :QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
+    # cdf=combine(groupby(df, [:INDEX, :TIME]), [:QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
     start=minimum(cdf.TIME)
     stop=maximum(cdf.TIME)
     F=unique(cdf.TOTALGPU_sum)[1]
     C=unique(cdf.TOTALCPU_sum)[1]
     bzp, idp, bap, total = quantifystates(df)
     R=unique(cdf.TOTALRAM_sum)[1]
+    RQ=cdf.RUNNING_maximum[end]
+    QQ=cdf.QUEUE_maximum[end] - cdf.RUNNING_maximum[end]
+    # QQ=cdf.QUEUE_maximum[end] .- cdf.RUNNING_maximum[end]
+    CQ=cdf.QUEUE_maximum .- cdf.RUNNING_maximum
     posttoslack("Over last $(sectime(df)) hours, utilization of cluster:")
     posttoslack("Total Nodes = $(total[end]) Mean Utilization $(@sprintf("%.2f", bzp[end] *100))%")
     posttoslack("Total CPUs = $(Int.(C)) Mean Utilization $(@sprintf("%.2f", 100-mean(cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100)))%")
     posttoslack("Total GPUs = $(Int.(F)) Mean Utilization $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
+    posttoslack("Running jobs = $(Int.(RQ)) Queued = $(Int.(QQ))")
+    posttoslack("Mean queue length $(@sprintf("%.2f", mean(CQ)))")
+    posttoslack("Max queue length $(@sprintf("%.2f", maximum(CQ)))")
 end
 
 
