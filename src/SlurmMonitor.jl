@@ -54,8 +54,12 @@ function plotstats(df)
     return px
 end
 
-
 function summarizestate(df)
+    _summarizestate(df)
+    _summarizestate(slice_hours(df, 24))
+end
+
+function _summarizestate(df)
     cdf=combine(groupby(df, [:INDEX, :TIME]), [:RUNNING => maximum, :QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
     # cdf=combine(groupby(df, [:INDEX, :TIME]), [:QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
     start=minimum(cdf.TIME)
@@ -68,13 +72,15 @@ function summarizestate(df)
     QQ=cdf.QUEUE_maximum[end] - cdf.RUNNING_maximum[end]
     # QQ=cdf.QUEUE_maximum[end] .- cdf.RUNNING_maximum[end]
     CQ=cdf.QUEUE_maximum .- cdf.RUNNING_maximum
-    posttoslack("Over last $(sectime(df)) hours, utilization of cluster:")
-    posttoslack("Total Nodes = $(total[end]) Mean Utilization $(@sprintf("%.2f", bzp[end] *100))%")
-    posttoslack("Total CPUs = $(Int.(C)) Mean Utilization $(@sprintf("%.2f", 100-mean(cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100)))%")
-    posttoslack("Total GPUs = $(Int.(F)) Mean Utilization $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
-    posttoslack("Running jobs = $(Int.(RQ)) Queued = $(Int.(QQ))")
-    posttoslack("Mean queue length $(@sprintf("%.2f", mean(CQ)))")
-    posttoslack("Max queue length $(@sprintf("%.2f", maximum(CQ)))")
+    msgs=[]
+    push!(msgs,"Last $(sectime(df)) hours, utilization of cluster:")
+    # push!(msgs,"Nodes = $(total[end]) μ busy $(@sprintf("%.2f", bzp[end] *100))%")
+    push!(msgs,"Nodes = $(total[end]) μ busy $(@sprintf("%.2f", bzp[end] *100))% -- CPU $(Int.(C)) μ busy $(@sprintf("%.2f", 100-mean(cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100)))% -- GPUs $(Int.(F)) μ busy $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
+    # push!(msgs,"GPUs $(Int.(F)) μ Utilization $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
+    # push!(msgs,"Running = $(Int.(RQ)) Queued = $(Int.(QQ))")
+    push!(msgs,"Jobs: Running = $(Int.(RQ)) Queued = $(Int.(QQ)) -- μ, max queue length $(@sprintf("%.2f", mean(CQ))), $(@sprintf("%.2f", maximum(CQ)))")
+    # push!(msgs,"max queue length $(@sprintf("%.2f", maximum(CQ)))")
+    posttoslack(join(msgs, "\n"))
 end
 
 
@@ -373,6 +379,7 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
             if r < 1
                 @info "halting"
                 summarizestate(recorded)
+                # summarizestate(slice_hours(recorded, 24))
                 break
             end
         end
@@ -382,6 +389,16 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
     end
     # posttoslack("")
     CSV.write("observed_state.csv", recorded)
+end
+
+function slice_hours(df, h)
+    secs = unique(df.INTERVAL)[1]
+    mai, mii = maximum(df.INDEX), minimum(df.INDEX)
+    tm=h * 60 * 60
+    ind=Int.(round(tm/secs))
+    last = max(1, mai - ind)
+    @info last
+    copy(df[df.INDEX .> last, :])
 end
 
 function triggernode(recorded)
@@ -419,6 +436,7 @@ function triggernode(recorded)
     end
     if trig
         summarizestate(recorded)
+        # summarizestate(slice_hours(recorded, 24))
     end
     return
 end
