@@ -25,6 +25,11 @@ function parse_commandline()
             help = "Slack endpoint of the form /services/<x>/<y>/<id>"
 	    	arg_type = String
 	    	required=true
+		"--latency-threshold", "-l"
+			help = "When latency to a node exceeds this many milliseconds (average), consider the node down and execute triggers. Default 50."
+			arg_type = Float64
+	    	required=false
+			default=50
     end
     return parse_args(s)
 end
@@ -43,7 +48,7 @@ function run()
     for (arg,val) in parsed_args
         @info "  $arg  =>  $val"
     end
-    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"], endpoint=parsed_args["endpoint"])
+    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"], endpoint=parsed_args["endpoint"], minlatency=parsed_args["latency-threshold"])
 end
 
 

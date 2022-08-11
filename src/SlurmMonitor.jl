@@ -378,7 +378,7 @@ function getkernel(node)
     return remotecall(node, "uname -r")
 end
 
-function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing)
+function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing, minlatency=50)
     r=iterations
     index=1
     recorded = DataFrame(NODE=String[], TIME=String[], INTERVAL=Int64[],
@@ -399,6 +399,9 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing)
             push!(recorded, [node, time, interval, index, state, totalgpu, freegpu,
             totalmemory, freememory, ncpu, freecpu,
             length(states), running, kernel, mi, ma, avg, st, lost])
+            if avg < minlatency
+                @error "Node $node latency has exceed threshold $minlatency"
+            end 
         end
         triggernode(recorded)
         if r != -1
