@@ -17,11 +17,13 @@ add .
 ## Usage
 Every 10 seconds, 10 times, record cluster state and save csv in /home/you/output
 ```bash
-julia --project=. monitor.jl --interval z iterations k --outdir /home/you/output --endpoint services/....
+julia --project=. monitor.jl --interval z iterations k --outdir /home/you/output --endpoint services/.... --min-latency 40
 ```
 This will save a csv file, every z seconds, for k iterations, where 1 line represents the state of each node in the cluster, recording total/free CPU/RAM/GPU and node status (IDLE, ALLOC, ...).
 
-On specified conditions (IDLE->DOWN) will send messages to a linked Slackbot, configured with endpoint.
+On specified conditions (IDLE->DOWN) will send messages to a linked Slackbot, configured with the right endpoint.
+
+If a node is not responsive (by network), a similar trigger is fired. Define the mininum average latency you consider as not-reachable in CLI.
 
 
 ## Dependencies

@@ -54,7 +54,7 @@ function plotstats(df)
     return px
 end
 
-function summarizestate(df, endoint=nothing)
+function summarizestate(df, endpoint=nothing)
     _summarizestate(df, endpoint)
     _summarizestate(slice_hours(df, 24), endpoint)
 end
