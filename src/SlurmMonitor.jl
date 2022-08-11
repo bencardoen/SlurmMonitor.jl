@@ -401,7 +401,7 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing,
             length(states), running, kernel, mi, ma, avg, st, lost])
             if avg < minlatency
                 @error "Node $node latency has exceed threshold $minlatency"
-            end 
+            end
         end
         triggernode(recorded)
         if r != -1
@@ -413,9 +413,9 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing,
             end
         end
         index = index + 1
-        CSV.write("observed_state.csv", recorded)
+        CSV.write(joinpath(outpath, "observed_state.csv"), recorded)
     end
-    CSV.write("observed_state.csv", recorded)
+    CSV.write(joinpath(outpath, "observed_state.csv"), recorded)
 end
 
 function slice_hours(df, h)

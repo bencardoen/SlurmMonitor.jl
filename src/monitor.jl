@@ -29,7 +29,7 @@ function parse_commandline()
 			help = "When latency to a node exceeds this many milliseconds (average), consider the node down and execute triggers. Default 50."
 			arg_type = Float64
 	    	required=false
-			default=50
+			default=50.exp10
     end
     return parse_args(s)
 end
