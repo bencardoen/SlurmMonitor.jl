@@ -54,12 +54,12 @@ function plotstats(df)
     return px
 end
 
-function summarizestate(df)
-    _summarizestate(df)
-    _summarizestate(slice_hours(df, 24))
+function summarizestate(df, endoint=nothing)
+    _summarizestate(df, endpoint)
+    _summarizestate(slice_hours(df, 24), endpoint)
 end
 
-function _summarizestate(df)
+function _summarizestate(df, endpoint)
     cdf=combine(groupby(df, [:INDEX, :TIME]), [:RUNNING => maximum, :QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
     # cdf=combine(groupby(df, [:INDEX, :TIME]), [:QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
     start=minimum(cdf.TIME)
@@ -80,7 +80,7 @@ function _summarizestate(df)
     # push!(msgs,"Running = $(Int.(RQ)) Queued = $(Int.(QQ))")
     push!(msgs,"Jobs: Running = $(Int.(RQ)) Queued = $(Int.(QQ)) -- μ, max queue length $(@sprintf("%.2f", mean(CQ))), $(@sprintf("%.2f", maximum(CQ)))")
     # push!(msgs,"max queue length $(@sprintf("%.2f", maximum(CQ)))")
-    posttoslack(join(msgs, "\n"))
+    posttoslack(join(msgs, "\n"), endpoint)
 end
 
 
@@ -225,6 +225,7 @@ function decodeusage(usage)
 end
 
 function remotecall(node, command, key="/home/bcardoen/.ssh/id_rsa", port=24)
+    @warn "Remove key"
     output = readlines(`ssh -i $key $(node) -p $port $command`)
     return output
 end
@@ -237,9 +238,13 @@ function diskusage(node)
 end
 
 
-function posttoslack(message; endpoint="/services/TD3K742US/B03NHNKMBEK/oepOlQgTwPokLWQxrWeSW4jO")
-    response = sendtoslack(message, endpoint)
-    @info "Sent $message to $endpoint with response $response"
+function posttoslack(message; endpoint=nothing)
+    if isnothing(endpoint)
+        @warn "Sent $message to empty endpoint ... ignoring"
+    else
+        response = sendtoslack(message, endpoint)
+        @info "Sent $message to $endpoint with response $response"
+    end
 end
 
 function decode_nvidiasmi(nvidiasmi, nvidiasmil)
@@ -350,8 +355,7 @@ function getkernel(node)
     return remotecall(node, "uname -r")
 end
 
-function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
-    # interval=60
+function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing)
     r=iterations
     index=1
     recorded = DataFrame(NODE=String[], TIME=String[], INTERVAL=Int64[],
@@ -362,7 +366,6 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
     time = Dates.format(now(Dates.UTC), "dd-mm-yyyy HH:MM")
     @info "Start at $time"
     while true
-        # @info "Sleeping for $interval seconds"
         sleep(interval)
         states, running =queuelength()
         time = Dates.format(now(Dates.UTC), "dd-mm-yyyy HH:MM")
@@ -378,7 +381,7 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
             r = r -1
             if r < 1
                 @info "halting"
-                summarizestate(recorded)
+                summarizestate(recorded, endpoint)
                 break
             end
         end
@@ -398,7 +401,7 @@ function slice_hours(df, h)
     copy(df[df.INDEX .> last, :])
 end
 
-function triggernode(recorded)
+function triggernode(recorded, endpoint=nothing)
     #@info "Testing health of cluster nodes"
     lastindex=maximum(recorded[!, :INDEX])
     if lastindex == 1
@@ -432,7 +435,7 @@ function triggernode(recorded)
         end
     end
     if trig
-        summarizestate(recorded)
+        summarizestate(recorded, endpoint)
         # summarizestate(slice_hours(recorded, 24))
     end
     return
