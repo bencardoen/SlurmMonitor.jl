@@ -352,8 +352,8 @@ function pinghost(host, count=100, interval=1)
     mi, av, ma, md = tryparse.(Float64, split(split(sq[2])[4], '/'))
     li = findfirst("%", lostline)
     lostpercent = tryparse(Float64, lostline[1:li[1]-1])
-    @info "Ping statistics for host $host with $count packets:"
-    @info "Min-max [$mi, $ma] ms, μ = $av ± $md with $lostpercent % lost packets"
+    @debug "Ping statistics for host $host with $count packets:"
+    @debug "Min-max [$mi, $ma] ms, μ = $av ± $md with $lostpercent % lost packets"
     return mi, av, ma, md, lostpercent
 end
 
@@ -403,7 +403,7 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing,
                 @error "Node $node latency has exceed threshold $minlatency"
             end
         end
-        triggernode(recorded)
+        triggernode(recorded, endpoint; minlatency)
         if r != -1
             r = r -1
             if r < 1
@@ -428,7 +428,8 @@ function slice_hours(df, h)
     copy(df[df.INDEX .> last, :])
 end
 
-function triggernode(recorded, endpoint=nothing)
+function triggernode(recorded, endpoint=nothing; minlatency)
+    # TODO move ping trigger here
     #@info "Testing health of cluster nodes"
     lastindex=maximum(recorded[!, :INDEX])
     if lastindex == 1
