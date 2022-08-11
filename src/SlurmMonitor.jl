@@ -338,6 +338,25 @@ function quantifygpu(r)
     return size(r, 1), busy
 end
 
+
+function pinghost(host, count=100, interval=1)
+    # Todo protect from crashing
+    sq = [""]
+    try
+        sq = readlines(`ping -A -i $interval $host -c $count`)[end-1:end]
+    catch e
+        @error "Ping to $host failed with exception $e"
+        return Inf64, Inf64, Inf64, Inf64, 100
+    end
+    lostline = split(sq[1], ',')[3]
+    mi, av, ma, md = tryparse.(Float64, split(split(sq[2])[4], '/'))
+    li = findfirst("%", lostline)
+    lostpercent = tryparse(Float64, lostline[1:li[1]-1])
+    @info "Ping statistics for host $host with $count packets:"
+    @info "Min-max [$mi, $ma] ms, μ = $av ± $md with $lostpercent % lost packets"
+    return mi, av, ma, md, lostpercent
+end
+
 function queuelength()
     sq = readlines(`squeue --long`)
     if length(sq) > 1
