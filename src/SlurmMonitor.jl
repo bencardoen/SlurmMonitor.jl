@@ -28,7 +28,7 @@ using CSV
 using ProgressMeter
 
 
-export monitor, plotstats, posttoslack, STATES, BADSTATE, GOODSTATE, summarizestate, sectime
+export monitor, plotstats, posttoslack, STATES, BADSTATE, GOODSTATE, summarizestate, sectime, pinghost
 
 STATES = ["ALLOC", "ALLOCATED", "CLOUD", "COMP", "COMPLETING", "DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "FUTURE", "FUTR", "IDLE", "MAINT", "MIX", "MIXED", "NO_RESPOND","NPC", "PERFCTRS", "PLANNED", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED", "RESV", "RESERVED", "UNK", "UNKNOWN"]
 BADSTATE = ["DOWN", "DOWN*", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "MAINT", "NO_RESPOND", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED"]
@@ -36,7 +36,7 @@ GOODSTATE = ["ALLOC", "ALLOCATED", "IDLE", "MIXED"]
 
 
 function plotstats(df)
-    cdf=combine(groupby(df, [:INDEX, :TIME]), [:FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
+    cdf=combine(groupby(df, [:INDEX, :TIME]), [:FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum, :AVGLATENCY=>mean])
     start=minimum(cdf.TIME)
     stop=maximum(cdf.TIME)
     F=unique(cdf.TOTALGPU_sum)[1]
@@ -60,7 +60,7 @@ function summarizestate(df, endoint=nothing)
 end
 
 function _summarizestate(df, endpoint)
-    cdf=combine(groupby(df, [:INDEX, :TIME]), [:RUNNING => maximum, :QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
+    cdf=combine(groupby(df, [:INDEX, :TIME]), [:RUNNING => maximum, :QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum, :AVGLATENCY=>mean])
     # cdf=combine(groupby(df, [:INDEX, :TIME]), [:QUEUE => maximum, :FREERAM => sum, :TOTALRAM => sum, :TOTALGPU => sum, :FREEGPU => sum, :TOTALCPU=>sum, :FREECPU=>sum])
     start=minimum(cdf.TIME)
     stop=maximum(cdf.TIME)
@@ -384,7 +384,7 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing)
     recorded = DataFrame(NODE=String[], TIME=String[], INTERVAL=Int64[],
                 INDEX=Int64[], STATE=String[], TOTALGPU=Int64[], FREEGPU=Int64[],
                 TOTALRAM=Float64[], FREERAM=Float64[], TOTALCPU=Float64[],
-                FREECPU=Float64[], QUEUE=Int64[], RUNNING=Int64[], KERNEL=String[])
+                FREECPU=Float64[], QUEUE=Int64[], RUNNING=Int64[], KERNEL=String[], MINLATENCY=Float64[], MAXLATENCY=Float64[], AVGLATENCY=Float64[], STDLATENCY=Float64[], LOSTPACKETS=Float64[])
     @info "Starting loop, polling every $interval seconds"
     time = Dates.format(now(Dates.UTC), "dd-mm-yyyy HH:MM")
     @info "Start at $time"
@@ -395,9 +395,10 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing)
         nodes = getnodes()
         @showprogress for node in nodes
             state, ncpu, freecpu, totalmemory, freememory, totalgpu, freegpu, kernel=getnodestatus(node)
+            mi, ma, avg, st, lost = pinghost(node)
             push!(recorded, [node, time, interval, index, state, totalgpu, freegpu,
             totalmemory, freememory, ncpu, freecpu,
-            length(states), running, kernel])
+            length(states), running, kernel, mi, ma, avg, st, lost])
         end
         triggernode(recorded)
         if r != -1
