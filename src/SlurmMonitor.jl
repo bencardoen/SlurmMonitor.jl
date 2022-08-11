@@ -395,7 +395,7 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing,
         nodes = getnodes()
         @showprogress for node in nodes
             state, ncpu, freecpu, totalmemory, freememory, totalgpu, freegpu, kernel=getnodestatus(node)
-            mi, ma, avg, st, lost = pinghost(node)
+            mi, avg, ma, st, lost = pinghost(node)
             push!(recorded, [node, time, interval, index, state, totalgpu, freegpu,
             totalmemory, freememory, ncpu, freecpu,
             length(states), running, kernel, mi, ma, avg, st, lost])
@@ -429,8 +429,6 @@ function slice_hours(df, h)
 end
 
 function triggernode(recorded, endpoint=nothing; minlatency)
-    # TODO move ping trigger here
-    #@info "Testing health of cluster nodes"
     lastindex=maximum(recorded[!, :INDEX])
     if lastindex == 1
         @info "Only 1 recording, no sense in checking"
