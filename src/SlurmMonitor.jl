@@ -448,7 +448,7 @@ function triggernode(recorded, endpoint=nothing; minlatency)
             if lastnodestate ∈ GOODSTATE
                 @error "Node switched from $lastnodestate to $curnodestate"
                 # trigger(node, lastnodestate, curnodestate, curstate)
-                posttoslack("-!- Warning-!- Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])")
+                posttoslack("-!- Warning-!- Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])", endpoint)
                 trig = true
             end
         end
@@ -457,8 +457,21 @@ function triggernode(recorded, endpoint=nothing; minlatency)
             if lastnodestate ∈ BADSTATE
                 @info "Node switched from $lastnodestate to $curnodestate"
                 # trigger(node, lastnodestate, curnodestate, curstate)
-                posttoslack("✓ Resolved ✓ Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])")
+                posttoslack("✓ Resolved ✓ Node $node switched from $lastnodestate to $curnodestate at $(curstate[curstate.NODE .== node, :].TIME[1])", endpoint)
                 trig = true
+            end
+        end
+        curnodelatency = curstate[curstate.NODE .== node, :].AVGLATENCY[1]
+        lastnodelatency = laststate[laststate.NODE .== node, :].AVGLATENCY[1]
+
+        if curnodelatency > minlatency
+            if lastnodelatency < minlatency
+                @warn "Node $node has latency > minlatency"
+                # trigger(node, lastnodestate, curnodestate, curstate)
+                posttoslack("-!- Warning-!- Node $node has latency > $minlatency , possibly non-responsive at $(curstate[curstate.NODE .== node, :].TIME[1])", endpoint)
+                trig = true
+            else
+                @warn "Node still unreachable, but we have warned earlier."
             end
         end
     end
