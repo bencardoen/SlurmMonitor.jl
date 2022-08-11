@@ -21,6 +21,10 @@ function parse_commandline()
             help = "path to save recorded stats"
 	    	arg_type = String
 	    	default = "."
+		"--endpoint", "-e"
+            help = "Slack endpoint of the form /services/<x>/<y>/<id>"
+	    	arg_type = String
+	    	required=true
     end
     return parse_args(s)
 end
@@ -39,7 +43,7 @@ function run()
     for (arg,val) in parsed_args
         @info "  $arg  =>  $val"
     end
-    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"])
+    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"], endpoint=parsed_args["endpoint"])
 end
 
 

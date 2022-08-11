@@ -379,15 +379,12 @@ function monitor(; interval=60, iterations=60*24, outpath="/dev/shm")
             if r < 1
                 @info "halting"
                 summarizestate(recorded)
-                # summarizestate(slice_hours(recorded, 24))
                 break
             end
         end
-        # posttoslack("")
         index = index + 1
         CSV.write("observed_state.csv", recorded)
     end
-    # posttoslack("")
     CSV.write("observed_state.csv", recorded)
 end
 
