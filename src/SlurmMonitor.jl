@@ -242,8 +242,12 @@ function posttoslack(message; endpoint=nothing)
     if isnothing(endpoint)
         @warn "Sent $message to empty endpoint ... ignoring"
     else
-        response = sendtoslack(message, endpoint)
-        @info "Sent $message to $endpoint with response $response"
+        try
+            response = sendtoslack(message, endpoint)
+            @info "Sent $message to $endpoint with response $response"
+        catch e
+            @error "Failed sending $message to $endpoint with exception $e"
+        end
     end
 end
 
