@@ -238,7 +238,7 @@ function diskusage(node)
 end
 
 
-function posttoslack(message; endpoint=nothing)
+function posttoslack(message, endpoint=nothing)
     if isnothing(endpoint)
         @warn "Sent $message to empty endpoint ... ignoring"
     else
