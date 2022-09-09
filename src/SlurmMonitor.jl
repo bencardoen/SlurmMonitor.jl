@@ -124,9 +124,11 @@ function enumeratestates(states)
 end
 
 function getnodes()
-    r=split(readlines(`sinfo -o"%N"`)[2], ',')
-    nodes = decodenodes(r)
-    return nodes
+    nds=[_n[1] for _n in split.(readlines(`sinfo -hN`), ' ')]
+    return unique(nds)
+    # r=split(readlines(`sinfo -o"%N"`)[2], ',')
+    # nodes = decodenodes(r)
+    # return nodes
 end
 
 function getcpu(node)
