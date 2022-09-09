@@ -28,7 +28,7 @@ using CSV
 using ProgressMeter
 
 
-export monitor, plotstats, posttoslack, STATES, BADSTATE, GOODSTATE, summarizestate, sectime, pinghost
+export monitor, plotstats, posttoslack, STATES, BADSTATE, GOODSTATE, summarizestate, sectime, pinghost, getnodes, decodenodes
 
 STATES = ["ALLOC", "ALLOCATED", "CLOUD", "COMP", "COMPLETING", "DOWN", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "FUTURE", "FUTR", "IDLE", "MAINT", "MIX", "MIXED", "NO_RESPOND","NPC", "PERFCTRS", "PLANNED", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED", "RESV", "RESERVED", "UNK", "UNKNOWN"]
 BADSTATE = ["DOWN", "DOWN*", "DRAIN" , "DRAINED", "DRAINING", "FAIL", "MAINT", "NO_RESPOND", "POWER_DOWN", "POWERING_DOWN", "POWERED_DOWN", "POWERING_UP","REBOOT_ISSUED", "REBOOT_REQUESTED"]
