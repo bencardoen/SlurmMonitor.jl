@@ -188,6 +188,7 @@ function alloctres(res)
 end
 
 function decodenodes(nodelist)
+    @info "nodes $nodelist"
     nodes = []
     for t in nodelist
         b, e, = findfirst('[', t), findfirst(']', t)
