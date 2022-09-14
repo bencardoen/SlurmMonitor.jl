@@ -125,10 +125,11 @@ end
 
 function getnodes()
     nds=[_n[1] for _n in split.(readlines(`sinfo -hN`), ' ')]
-    return unique(nds)
-    # r=split(readlines(`sinfo -o"%N"`)[2], ',')
-    # nodes = decodenodes(r)
-    # return nodes
+    nodes=unique(nds)
+    if length(nodes) == 0
+        @warn "!! Node list == 0 !!"
+    end
+    return nodes
 end
 
 function getcpu(node)
