@@ -22,7 +22,7 @@ function parse_commandline()
 	    	arg_type = String
 	    	default = "."
 		"--endpoint", "-e"
-            help = "Slack endpoint of the form /services/<x>/<y>/<id>"
+            help = "File containing Slack endpoint of the form /services/<x>/<y>/<id>"
 	    	arg_type = String
 	    	required=true
 		"--latency-threshold", "-l"
@@ -34,7 +34,15 @@ function parse_commandline()
     return parse_args(s)
 end
 
+function readendpoint(path)
+	try
+		return readlines(path)[1]
+	catch e
+		@error "Failed decoding endpoint from $path with $e"
+		return nothing
+	end
 
+end
 
 function run()
     p = parse_commandline()
@@ -48,7 +56,8 @@ function run()
     for (arg,val) in parsed_args
         @info "  $arg  =>  $val"
     end
-    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"], endpoint=parsed_args["endpoint"], minlatency=parsed_args["latency-threshold"])
+endpoint = readendpoint(parsed_args["endpoint"])
+    monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"], endpoint=endpoint, minlatency=parsed_args["latency-threshold"])
 end
 
 
