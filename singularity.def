@@ -2,11 +2,12 @@ BootStrap: docker
 From: fedora:35
 %files
     runjulia.sh        /opt/runjulia.sh
+    SlurmMonitor.jl.zip /opt/SlurmMonitor.jl.zip
 
 %post
-    dnf install -y wget openssh-clients git g++
+    dnf install -y wget openssh-clients git g++ unzip
     cd /opt
-    git clone https://github.com/bencardoen/SlurmMonitor.jl
+    #git clone https://github.com/bencardoen/SlurmMonitor.jl
     wget https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.1-linux-x86_64.tar.gz
     mkdir -p /opt/julia
     mv julia-1.7.1-linux-x86_64.tar.gz /opt/julia
@@ -15,11 +16,13 @@ From: fedora:35
     export PATH=/opt/julia/julia-1.7.1/bin:$PATH
     mkdir -p /opt/juliadepot
     export JULIA_DEPOT_PATH=/opt/juliadepot
+    cd /opt
+    unzip -q /opt/SlurmMonitor.jl.zip
     cd /opt/SlurmMonitor.jl
     julia --project=/opt/SlurmMonitor.jl -e 'using Pkg; Pkg.update(); ENV["PYTHON"]=""; Pkg.build(); Pkg.instantiate()'
-    julia --project=/opt/SlurmMonitor.jl -e 'using SlurmMonitor.jl'
+    julia --project=/opt/SlurmMonitor.jl -e 'using SlurmMonitor'
     julia --project=/opt/SlurmMonitor.jl -e 'using Pkg; Pkg.build("SlurmMonitor")'
-    julia --project=/opt/SlurmMonitor.jl -e 'using Pkg; Pkg.test("SlurmMonitor")'
+    #julia --project=/opt/SlurmMonitor.jl -e 'using Pkg; Pkg.test("SlurmMonitor")'
     #julia --project=. --trace-compile=dc_precompile.jl src/precompile.jl
     #julia --project=. src/setupimage.jl
     rm -rf /opt/juliadepot/logs
