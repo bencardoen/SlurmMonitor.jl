@@ -43,7 +43,19 @@ julia>using Pkg; Pkg.activate() # Activate env in current dir, optional
 julia>using Pkg; Pkg.add(url=<thisrepo>)
 ```
 
-
+## Test integration with slack
+```bash
+julia --project=.  # assuming you're in the cloned directory
+```
+Then
+```julia
+using SlurmMonitor
+endpoint=readendpoint("endpoint.txt")
+posttoslack("42 is the answer", endpoint)
+```
+That either posts the message, or tells you why it couldn't.
+**make sure the format of the url is /services/.../.../..**
+See slack app configuration page on how to fix this if invalid.
 
 ## Usage
 The monitor polls at intervals **i**, repeating **r** times, with minimum acceptable latency **l** and saving to output dir **o**.
@@ -93,3 +105,7 @@ Do not do this unless you're a cluster admin.
 - Triggers can be anything, currently node state and latency are used
 - Diskusage, nvidia drivers, etc are all implemented, not active (can trigger ssh lockout)
 - **Contact me if you need those active**
+
+## Troublehshooting
+### Times seem wrong
+Times are recorded in UTC. If you want this differently, it's not hard, I'd happily accept a properly documented PR.
