@@ -34,15 +34,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-function readendpoint(path)
-	try
-		return readlines(path)[1]
-	catch e
-		@error "Failed decoding endpoint from $path with $e"
-		return nothing
-	end
 
-end
 
 function run()
     p = parse_commandline()
@@ -56,7 +48,8 @@ function run()
     for (arg,val) in parsed_args
         @info "  $arg  =>  $val"
     end
-endpoint = readendpoint(parsed_args["endpoint"])
+	endpoint = readendpoint(parsed_args["endpoint"])
+	@info "Using endpoint $endpoint"
     monitor(; interval=parsed_args["interval"], iterations=parsed_args["iterations"], outpath=parsed_args["outpath"], endpoint=endpoint, minlatency=parsed_args["latency-threshold"])
 end
 
