@@ -49,7 +49,7 @@ julia>using Pkg; Pkg.add(url=<thisrepo>)
 The monitor polls at intervals **i**, repeating **r** times, with minimum acceptable latency **l** and saving to output dir **o**.
 Triggers (node going down, latency spikes), trigger optional messages to Slack **e**.
 It needs and endpoint file (1 line), with a endpoint (see earlier).
-
+You'd use this within a tmux/screen session to keep it in the background.
 ### Example
 Every minute, for 1e4 minutes, run the monitor, and call Solar Slack if issues arise.
 ```bash
@@ -61,6 +61,8 @@ On specified conditions (IDLE->DOWN) will send messages to a linked Slackbot, co
 
 If a node is not responsive (by network), a similar trigger is fired. Define the mininum average latency you consider as not-reachable in CLI.
 
+### Output
+Saved to `observed_state.csv`
 
 ## Dependencies
 - Julia [https://julialang.org/downloads/](https://julialang.org/downloads/)
