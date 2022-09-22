@@ -12,6 +12,28 @@ Then
 ```julia
 add .
 ```
+or
+```bash
+julia
+```
+then
+```julia
+julia>using Pkg; Pkg.activate() # Activate env in current dir, optional
+julia>using Pkg; Pkg.add(url=<thisrepo)
+```
+
+### Singularity
+**needs sudo**
+```bash
+chmod u+x ./buildimage.sh
+./buildimage.sh
+chmod u+x monitor.sif
+./monitor.sif <args>
+```
+Where args are the arguments you'd provide to [src/monitor.jl](src/monitor.jl)
+```bash
+./monitor.sif --interval z iterations k --outdir /home/you/output --endpoint services/.... --min-latency 40
+```
 
 
 ## Usage
