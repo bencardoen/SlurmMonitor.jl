@@ -62,7 +62,19 @@ On specified conditions (IDLE->DOWN) will send messages to a linked Slackbot, co
 If a node is not responsive (by network), a similar trigger is fired. Define the mininum average latency you consider as not-reachable in CLI.
 
 ### Output
-Saved to `observed_state.csv`
+Saved to `observed_state.csv`.
+**Do Not move the csv file, it's continuously read/written to**
+See [src/SlurmMonitor.jl](src/SlurmMonitor.jl), e.g. `summarizestate($DATAFRAME, $ENDPOINT)`.
+```julia
+using Pkg
+Pkg.activate(".")
+using DataFrames
+using CSV
+df = CSV.read("where.csv", DataFrame)
+endpoint = readendpoint("whereendpointis.txt")
+summarizestate(df, endpoint) ## Sends to slack
+plotstats(df)  ## Plots in svg
+```
 
 ## Dependencies
 - Julia [https://julialang.org/downloads/](https://julialang.org/downloads/)
