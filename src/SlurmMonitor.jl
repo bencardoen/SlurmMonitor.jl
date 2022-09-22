@@ -351,6 +351,7 @@ function quantifygpu(r)
     return size(r, 1), busy
 end
 
+git pull origin master --allow-unrelated-histories
 
 function pinghost(host, count=100, interval=1)
     # Todo protect from crashing
