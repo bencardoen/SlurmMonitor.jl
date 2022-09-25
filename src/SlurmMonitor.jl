@@ -227,12 +227,26 @@ function decodeusage(usage)
     return total, (used/total)*100
 end
 
+"""
+    remotecall(node, command, key)
+
+    Execute *command* at *node* using SSH.
+
+    **WARNING** unsafe, no parsing is done.
+"""
 function remotecall(node, command, key="/home/bcardoen/.ssh/id_rsa", port=24)
     @warn "Remove key"
     output = readlines(`ssh -i $key $(node) -p $port $command`)
     return output
 end
 
+"""
+    diskusage(node)
+
+Quantify disk usage on remote node.
+
+Return total (TB) and %
+"""
 function diskusage(node)
     command="df -H"
     outp = remotecall(node, command)
@@ -240,6 +254,13 @@ function diskusage(node)
     return decoded
 end
 
+"""
+    readendpoint(file)
+
+Read ASCII encoded 1-line Slack Webhook URL from *file*
+
+If reading was impossible, returns nothing
+"""
 function readendpoint(path)
 	try
 		return readlines(path)[1]
@@ -249,8 +270,16 @@ function readendpoint(path)
 	end
 end
 
+function posttoslack(message, endpoint::Nothing)
+    return
+end
 
-function posttoslack(message, endpoint=nothing)
+"""
+    posttoslack(message, endpoint)
+
+Send message using *endpoint* (Slack webhook)
+"""
+function posttoslack(message, endpoint::AbstractString=nothing)
     if isnothing(endpoint)
         @warn "Sent $message to empty endpoint ... ignoring"
     else
