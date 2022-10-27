@@ -150,6 +150,14 @@ function getfield(scontrolfield, field="State=")
     state=str[b+1:b+e-2]
 end
 
+function safenothing(value, name, def=0)
+    if isnothing(value)
+        @error "Value $name is invalid, defaulting to $def"
+        return def
+    end
+    return value
+end
+
 function getnodestatus(nodename)
     res=readlines(`scontrol show node $(nodename)`)
     state=getfield(res)
@@ -162,6 +170,8 @@ function getnodestatus(nodename)
     # @info "Total $ncpu Allocated $freecpu"
     totalmemory=tryparse(Float64, getfield(res, "RealMemory="))
     freememory=tryparse(Float64, getfield(res, "FreeMem="))
+    freememory = safenothing(freememory, "free memory", 0)
+    totalmemory = safenothing(totalmemory, "total memory", 0)
     # @info "Total memory $totalmemory free $freememory"
     gpualloc=alloctres(res)
     totalgpu=tryparse(Int, split(filter(y->occursin("Gres=", y), res)[1],':')[end])
@@ -228,12 +238,26 @@ function decodeusage(usage)
     return total, (used/total)*100
 end
 
+"""
+    remotecall(node, command, key)
+
+    Execute *command* at *node* using SSH.
+
+    **WARNING** unsafe, no parsing is done.
+"""
 function remotecall(node, command, key="/home/bcardoen/.ssh/id_rsa", port=24)
     @warn "Remove key"
     output = readlines(`ssh -i $key $(node) -p $port $command`)
     return output
 end
 
+"""
+    diskusage(node)
+
+Quantify disk usage on remote node.
+
+Return total (TB) and %
+"""
 function diskusage(node)
     command="df -H"
     outp = remotecall(node, command)
@@ -241,6 +265,13 @@ function diskusage(node)
     return decoded
 end
 
+"""
+    readendpoint(file)
+
+Read ASCII encoded 1-line Slack Webhook URL from *file*
+
+If reading was impossible, returns nothing
+"""
 function readendpoint(path)
 	try
 		return readlines(path)[1]
@@ -250,8 +281,16 @@ function readendpoint(path)
 	end
 end
 
+function posttoslack(message, endpoint::Nothing)
+    return
+end
 
-function posttoslack(message, endpoint=nothing)
+"""
+    posttoslack(message, endpoint)
+
+Send message using *endpoint* (Slack webhook)
+"""
+function posttoslack(message, endpoint::AbstractString=nothing)
     if isnothing(endpoint)
         @warn "Sent $message to empty endpoint ... ignoring"
     else
@@ -352,8 +391,14 @@ function quantifygpu(r)
 end
 
 
+"""
+    pinghost(host, count, interval)
+
+Records ICMP ping latency for *count* packets with *interval*.
+
+    Returns min, avg, max, median, lostpercentage
+"""
 function pinghost(host, count=100, interval=1)
-    # Todo protect from crashing
     sq = [""]
     try
         sq = readlines(`ping -A -i $interval $host -c $count`)[end-1:end]
@@ -368,15 +413,13 @@ function pinghost(host, count=100, interval=1)
         @error "Ping to $host failed with exception $e"
         return Inf64, Inf64, Inf64, Inf64, 100
     end
-    # lostline = split(sq[1], ',')[3]
-    # mi, av, ma, md = tryparse.(Float64, split(split(sq[2])[4], '/'))
-    # li = findfirst("%", lostline)
-    # lostpercent = tryparse(Float64, lostline[1:li[1]-1])
-    # @debug "Ping statistics for host $host with $count packets:"
-    # @debug "Min-max [$mi, $ma] ms, μ = $av ± $md with $lostpercent % lost packets"
-    # return mi, av, ma, md, lostpercent
 end
 
+"""
+    queuelength
+
+    Parses the output of *squeue* to figure out active/pending jobs
+"""
 function queuelength()
     sq = readlines(`squeue --long`)
     if length(sq) > 1
@@ -394,12 +437,33 @@ function queuelength()
 end
 
 
+"""
+    getkernel(node)
+
+Get kernel version (String) of remote node
+
+"""
 function getkernel(node)
     return remotecall(node, "uname -r")
 end
 
+"""
+    monitor(; interval, iterations, outpath, endpoint, minlatency)
+
+During iterations * interval seconds, monitor SLURM output.
+
+# Arguments
+- `interval:Integer`: number of seconds to wait before polling status
+- `iterations:Integer`: Number of polls, -1 for Inf
+- `outpath:String` : where to save output (csv)
+- `endpoint:String`: Slack URL webhook
+- `minlatency:Integer` : If latency exceeds this value, consider this problematic state
+"""
 function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing, minlatency=50)
     r=iterations
+    if iterations == -1
+        @debug "Infinite run"
+    end
     index=1
     recorded = DataFrame(NODE=String[], TIME=String[], INTERVAL=Int64[],
                 INDEX=Int64[], STATE=String[], TOTALGPU=Int64[], FREEGPU=Int64[],

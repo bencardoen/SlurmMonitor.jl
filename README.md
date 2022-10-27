@@ -1,5 +1,8 @@
 # SlurmMonitor
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7106106.svg)](https://doi.org/10.5281/zenodo.7106106)
+
+
 SlurmMonitor monitors SLURM (an HPC scheduler) based clusters for status, records the data over time, and if configured can act on predefined conditions.
 
 ## Linking to Slack
@@ -109,3 +112,22 @@ Do not do this unless you're a cluster admin.
 ## Troublehshooting
 ### Times seem wrong
 Times are recorded in UTC. If you want this differently, it's not hard, I'd happily accept a properly documented PR.
+
+
+## Cite
+If you find this useful, please cite
+```bibtex
+@software{ben_cardoen_2022_7106106,
+  author       = {Ben Cardoen},
+  title        = {{SlurmMonitor.jl: A Slurm monitoring tool that
+                   notifies slack on adverse SLURM HPC state changes
+                   and records temporal statistics on utilization.}},
+  month        = sep,
+  year         = 2022,
+  note         = {https://github.com/bencardoen/SlurmMonitor.jl},
+  publisher    = {Zenodo},
+  version      = {0.1.0},
+  doi          = {10.5281/zenodo.7106106},
+  url          = {https://doi.org/10.5281/zenodo.7106106}
+}
+```
