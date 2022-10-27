@@ -150,6 +150,14 @@ function getfield(scontrolfield, field="State=")
     state=str[b+1:b+e-2]
 end
 
+function safenothing(value, name, def=0)
+    if isnothing(value)
+        @error "Value $name is invalid, defaulting to $def"
+        return def
+    end
+    return value
+end
+
 function getnodestatus(nodename)
     res=readlines(`scontrol show node $(nodename)`)
     state=getfield(res)
@@ -162,6 +170,8 @@ function getnodestatus(nodename)
     # @info "Total $ncpu Allocated $freecpu"
     totalmemory=tryparse(Float64, getfield(res, "RealMemory="))
     freememory=tryparse(Float64, getfield(res, "FreeMem="))
+    freememory = safenothing(freememory, "free memory", 0)
+    totalmemory = safenothing(totalmemory, "total memory", 0)
     # @info "Total memory $totalmemory free $freememory"
     gpualloc=alloctres(res)
     totalgpu=tryparse(Int, split(filter(y->occursin("Gres=", y), res)[1],':')[end])
