@@ -75,10 +75,10 @@ function _summarizestate(df, endpoint)
     msgs=[]
     push!(msgs,"Last $(sectime(df)) hours, utilization of cluster:")
     # push!(msgs,"Nodes = $(total[end]) μ busy $(@sprintf("%.2f", bzp[end] *100))%")
-    push!(msgs,"Nodes = $(total[end]) μ busy $(@sprintf("%.2f", bzp[end] *100))% -- CPU $(Int.(C)) μ busy $(@sprintf("%.2f", 100-mean(cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100)))% -- GPUs $(Int.(F)) μ busy $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
+    push!(msgs,"Nodes = $(total[end]) mean utilization $(@sprintf("%.2f", bzp[end] *100))% \n CPU $(Int.(C)) mean utilization $(@sprintf("%.2f", 100-mean(cdf.FREECPU_sum ./ cdf.TOTALCPU_sum .*100)))% -- \n GPUs $(Int.(F)) mean utilization $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
     # push!(msgs,"GPUs $(Int.(F)) μ Utilization $(@sprintf("%.2f", 100-mean(cdf.FREEGPU_sum ./ cdf.TOTALGPU_sum .*100)))%")
     # push!(msgs,"Running = $(Int.(RQ)) Queued = $(Int.(QQ))")
-    push!(msgs,"Jobs: Running = $(Int.(RQ)) Queued = $(Int.(QQ)) -- μ, max queue length $(@sprintf("%.2f", mean(CQ))), $(@sprintf("%.2f", maximum(CQ)))")
+    push!(msgs,"Jobs: \n Running = $(Int.(RQ)) \n Queued = $(Int.(QQ)) -- mean, max queue length $(@sprintf("%.2f", mean(CQ))), $(@sprintf("%.2f", maximum(CQ)))")
     # push!(msgs,"max queue length $(@sprintf("%.2f", maximum(CQ)))")
     posttoslack(join(msgs, "\n"), endpoint)
 end
@@ -483,7 +483,7 @@ function monitor(; interval=60, iterations=60*24, outpath=".", endpoint=nothing,
             totalmemory, freememory, ncpu, freecpu,
             length(states), running, kernel, mi, ma, avg, st, lost])
             if avg > minlatency
-                @error "Node $node latency has exceed threshold $minlatency"
+                @error "Node $node latency has exceed threshold $minlatency ms"
             end
         end
         triggernode(recorded, endpoint; minlatency)
